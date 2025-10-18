@@ -1,120 +1,75 @@
-var siteName = document.getElementById("bookmarkName");
-var siteURL = document.getElementById("bookmarkURL");
-var tableContent = document.getElementById("tableContent");
-var boxModal = document.querySelector(".box-info");
-var bookmarks = [];
+var siteNameInput = document.getElementById("siteName");
+var siteURLInput = document.getElementById("siteURL");
+var siteList = [];
 
-if (localStorage.getItem("bookmarksList")) {
-  bookmarks = JSON.parse(localStorage.getItem("bookmarksList"));
-  for (var x = 0; x < bookmarks.length; x++) {
-    displayBookmark(x);
-  }
+if (localStorage.getItem("sites") !== null) {
+  siteList = JSON.parse(localStorage.getItem("sites"));
+  displaysiteList();
 }
 
-function displayBookmark(indexOfWebsite) {
-  var userURL = bookmarks[indexOfWebsite].siteURL;
-  var httpsRegex = /^https?:\/\//g;
-  if (httpsRegex.test(userURL)) {
-    validURL = userURL;
-    fixedURL = validURL
-      .split("")
-      .splice(validURL.match(httpsRegex)[0].length)
-      .join("");
-  } else {
-    var fixedURL = userURL;
-    validURL = (`https://${userURL}`);
-  }
-  var newBookmark = `
-              <tr>
-                <td>${indexOfWebsite + 1}</td>
-                <td>${bookmarks[indexOfWebsite].siteName}</td>              
-                <td>
-                  <button class="btn btn-visit" onclick="visitWebsite(${indexOfWebsite})">
-                    <i class="fa-solid fa-eye pe-2"></i>Visit
-                  </button>
-                </td>
-                <td>
-                  <button class="btn btn-delete" onclick="deleteBookmark(${indexOfWebsite})">
-                    <i class="fa-solid fa-trash-can"></i>
-                    Delete
-                  </button>
-                </td>
-            </tr>
-            `;
-  tableContent.innerHTML += newBookmark;
-}
-
-function clearInput() {
-  siteName.value = "";
-  siteURL.value = "";
-}
-
-function capitalize(str) {
-  let strArr = str.split("");
-  strArr[0] = strArr[0].toUpperCase();
-  return strArr.join("");
-}
-
-// دالة جديدة للأزرار الثابتة
-function handleSubmit() {
-  if (
-    siteName.classList.contains("is-valid") &&
-    siteURL.classList.contains("is-valid")
-  ) {
-    var bookmark = {
-      siteName: capitalize(siteName.value),
-      siteURL: siteURL.value,
+function addSite() {
+  if (validInputs()) {
+    var website = {
+      name: siteNameInput.value.replace(/^\s+|\s+$/g, ""),
+      url: siteURLInput.value.replace(/^\s+|\s+$/g, "")
     };
-    bookmarks.push(bookmark);
-    localStorage.setItem("bookmarksList", JSON.stringify(bookmarks));
-    displayBookmark(bookmarks.length - 1);
-    clearInput();
-    siteName.classList.remove("is-valid");
-    siteURL.classList.remove("is-valid");
-  } else {
-    boxModal.classList.remove("d-none");
+    siteList.push(website);
+    clearInputs();
+    setItemInlocalStorage();
+    displaysiteList();
   }
 }
 
-function deleteBookmark(index) {
-  tableContent.innerHTML = "";
-  bookmarks.splice(index, 1);
-  for (var k = 0; k < bookmarks.length; k++) {
-    displayBookmark(k);
+function clearInputs() {
+  siteNameInput.value = "";
+  siteURLInput.value = "";
+  siteNameInput.classList.remove("is-valid","is-invalid");
+  siteURLInput.classList.remove("is-valid","is-invalid");
+}
+
+function setItemInlocalStorage() {
+  localStorage.setItem("sites", JSON.stringify(siteList));
+}
+
+function displaysiteList() {
+  var table = "";
+  for (var i = 0; i < siteList.length; i++) {
+    table += `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${siteList[i].name}</td>
+      <td>
+        <a href="${siteList[i].url}" target="_blank">
+          <button class="btn-success">Visit</button>
+        </a>
+      </td>
+      <td>
+        <button class="btn-danger" onclick="deleteSite(${i})">Delete</button>
+      </td>
+    </tr>`;
   }
-  localStorage.setItem("bookmarksList", JSON.stringify(bookmarks));
+  document.getElementById("bodyTable").innerHTML = table;
 }
 
-function visitWebsite(index) {
-  var httpsRegex = /^https?:\/\//;
-  if (httpsRegex.test(bookmarks[index].siteURL)) {
-    open(bookmarks[index].siteURL);
-  } else {
-    open(`https://${bookmarks[index].siteURL}`);
-  }
+function deleteSite(index) {
+  siteList.splice(index, 1);
+  setItemInlocalStorage();
+  displaysiteList();
 }
 
-var nameRegex = /^\w{3,}(\s+\w+)*$/;
-var urlRegex = /^(https?:\/\/)?(w{3}\.)?\w+\.\w{2,}\/?(:\d{2,5})?(\/\w+)*$/;
+function validInputs() {
+  var regexName = /^[a-zA-Z0-9]{3,}$/;
+  var regexURL = /^(https?:\/\/|www\.)[a-z0-9\-\.]+\.[a-z]{2,}(\S*)?$/;
+  var nameValue = siteNameInput.value.replace(/^\s+|\s+$/g, "");
+  var urlValue = siteURLInput.value.replace(/^\s+|\s+$/g, "");
+  var validName = regexName.test(nameValue);
+  var validURL = regexURL.test(urlValue);
 
-function validateSiteName() {
-  validate(siteName, nameRegex);
-}
+  siteNameInput.classList.remove("is-valid","is-invalid");
+  if (nameValue !== "") validName ? siteNameInput.classList.add("is-valid") : siteNameInput.classList.add("is-invalid");
 
-function validateSiteURL() {
-  validate(siteURL, urlRegex);
-}
+  siteURLInput.classList.remove("is-valid","is-invalid");
+  if (urlValue !== "") validURL ? siteURLInput.classList.add("is-valid") : siteURLInput.classList.add("is-invalid");
 
-function validate(element, regex) {
-  if (regex.test(element.value)) {
-    element.classList.add("is-valid");
-    element.classList.remove("is-invalid");
-  } else {
-    element.classList.add("is-invalid");
-    element.classList.remove("is-valid");
-  }
-}
-
-function closeModal() {
-  boxModal.classList.add("d-none");
+  return validName && validURL;
 }
